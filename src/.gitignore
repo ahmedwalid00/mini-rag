@@ -68,3 +68,8 @@ pytest_cache/
 # React Native / Expo
 .expo/
 .expo-shared/
+
+#assets files 
+src/assets/files/
+
+
