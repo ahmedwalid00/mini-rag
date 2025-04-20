@@ -70,6 +70,7 @@ pytest_cache/
 .expo-shared/
 
 #assets files 
-src/assets/files/
+assets/files/
+
 
 

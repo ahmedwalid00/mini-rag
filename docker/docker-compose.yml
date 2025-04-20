@@ -1,0 +1,23 @@
+services:
+  mini-rag: # <-- Name of YOUR application service
+    build: ..        # <-- Or image:, etc. for your app
+    container_name: "mini-rag" 
+    ports:
+      - "8000:8000" # <-- Example port for your app
+    environment:
+      # Ensure your app uses these (or reads them from .env)
+      # Explicitly setting them here overrides .env
+      MONGODB_URL: "mongodb://host.docker.internal:27017/mini-rag" 
+      MONGODB_DATABASE: "mini-rag"
+      # Add other env vars your app needs
+    networks:
+      - backend
+    restart: unless-stopped # Or your preferred restart policy
+    # NO depends_on: [mongodb]
+
+# NO 'mongodb:' service definition anymore!
+
+networks:
+  backend:
+
+# NO top-level 'volumes:' for mongodb needed anymore
