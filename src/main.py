@@ -5,23 +5,38 @@ from contextlib import asynccontextmanager
 from routes import base, data
 from helpers.config import get_settings
 
-# Define the lifespan asynchronous context manager
-@asynccontextmanager
-async def lifespan(app: FastAPI):
+app = FastAPI()
 
+@app.on_event("startup")
+async def startup_db_client():
     settings = get_settings()
-    # Connect to MongoDB
-    mongo_conn = AsyncIOMotorClient(settings.MONGODB_URL)
-    db_client = mongo_conn[settings.MONGODB_DATABASE]
+    app.mongo_conn = AsyncIOMotorClient(settings.MONGODB_URL)
+    app.db_client = app.mongo_conn[settings.MONGODB_DATABASE]
 
-    app.state.mongo_conn = mongo_conn
-    app.state.db_client = db_client
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    app.mongo_conn.close()
 
-    yield  
+app.include_router(base.base_route)
+app.include_router(data.data_route)
 
-    app.state.mongo_conn.close()
+# Define the lifespan asynchronous context manager
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+
+#     settings = get_settings()
+#     # Connect to MongoDB
+#     mongo_conn = AsyncIOMotorClient(settings.MONGODB_URL)
+#     db_client = mongo_conn[settings.MONGODB_DATABASE]
+
+#     app.state.mongo_conn = mongo_conn
+#     app.state.db_client = db_client
+
+#     yield  
+
+#     app.state.mongo_conn.close()
     
-app = FastAPI(lifespan=lifespan)
+# app = FastAPI(lifespan=lifespan)
 
 # --- IMPORTANT NOTE FOR YOUR ROUTES ---
 # Previously, you might have accessed the db client in your routes like:
@@ -37,8 +52,8 @@ app = FastAPI(lifespan=lifespan)
 # --------------------------------------
 
 # Include your routers (no changes needed here)
-app.include_router(base.base_route)
-app.include_router(data.data_route)
+# app.include_router(base.base_route)
+# app.include_router(data.data_route)
 
  
 

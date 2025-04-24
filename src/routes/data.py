@@ -1,9 +1,12 @@
-from fastapi import FastAPI , APIRouter , Depends , UploadFile ,status
+from fastapi import FastAPI , APIRouter , Depends , UploadFile ,status ,Request
 from fastapi.responses import JSONResponse
 from helpers.config import Settings , get_settings
 from controllers import DataController , ProcessController
 from controllers.ProjectController import ProjectController
 from routes.schemes.data_schemes import ProcessRequest
+from models.ChunkModel import ChunkModel
+from models.ProjectModel import ProjectModel
+from models.db_schemes import DataChunk
 from models import ResponseSignal
 import aiofiles
 import os
@@ -18,10 +21,16 @@ data_route = APIRouter(
 
 @data_route.post('/upload/{project_id}')
 async def upload_data(
+    request : Request ,
     project_id : str , 
     file : UploadFile
     ,settings : Settings = Depends(get_settings)
 ) : 
+    
+    project_model = ProjectModel(db_client=request.app.db_client)
+    
+    project = await project_model.get_project_or_create_one(project_id=project_id)
+
     data_controller = DataController()
     is_valid , signal_response = data_controller.validate_uploaded_file(file=file)
 
@@ -60,12 +69,18 @@ async def upload_data(
     )
 
 @data_route.post("/process/{project_id}")
-async def process_endpoint(project_id : str , 
+async def process_endpoint(request : Request ,
+                           project_id : str , 
                            process_request : ProcessRequest) : 
     
     file_id = process_request.file_id
     chunk_size = process_request.chunk_size
     chunk_overlap = process_request.chunk_overlap
+    do_reset = process_request.do_reset
+
+    project_model = ProjectModel(db_client=request.app.db_client)
+
+    project = await project_model.get_project_or_create_one(project_id=project_id)
 
     process_controller = ProcessController(project_id=project_id)
 
@@ -85,4 +100,31 @@ async def process_endpoint(project_id : str ,
             }
         )
     
-    return file_chunks
+    file_chunks_contents = [
+
+        DataChunk(
+            chunk_text = chunk.page_content,
+            chunk_metadata = chunk.metadata , 
+            chunk_order = i+1 ,
+            chunk_project_id = project.id
+        )
+        for i,chunk in enumerate(file_chunks)
+    ] 
+
+    chunk_model = ChunkModel(db_client=request.app.db_client)
+
+
+
+    no_recoreds = await chunk_model.insert_many_chunks(chunks=file_chunks_contents)
+
+    if do_reset == 1 :
+        _ = await chunk_model.delete_chunk_by_project_id(
+            project_id=project.id
+            )
+
+    return JSONResponse(
+        content= {
+            "signal" : ResponseSignal.PROCESSING_SUCCESS.value ,
+            "inserted_chunks" : no_recoreds
+        }
+    )

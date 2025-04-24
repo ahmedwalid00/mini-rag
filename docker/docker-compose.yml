@@ -1,23 +1,26 @@
 services:
-  mini-rag: # <-- Name of YOUR application service
-    build: ..        # <-- Or image:, etc. for your app
-    container_name: "mini-rag" 
+  mongodb:
+    image: mongo:7-jammy
+    
+    container_name: mongodb
+    
     ports:
-      - "8000:8000" # <-- Example port for your app
+      - "27007:27017"
+    
+    volumes:
+      - mongodata:/data/db
+    
     environment:
-      # Ensure your app uses these (or reads them from .env)
-      # Explicitly setting them here overrides .env
-      MONGODB_URL: "mongodb://host.docker.internal:27017/mini-rag" 
-      MONGODB_DATABASE: "mini-rag"
-      # Add other env vars your app needs
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    
     networks:
       - backend
-    restart: unless-stopped # Or your preferred restart policy
-    # NO depends_on: [mongodb]
-
-# NO 'mongodb:' service definition anymore!
+    
+    restart: always
 
 networks:
   backend:
 
-# NO top-level 'volumes:' for mongodb needed anymore
+volumes: 
+  mongodata:
