@@ -69,7 +69,7 @@ async def upload_data(
 
     asset_resource = Asset(
         asset_project_id= project.id , 
-        asset_type = AssetType.TYPE.value , 
+        asset_type = AssetType.FILE.value , 
         asset_name = file_id , 
         asset_size = os.path.getsize(file_path)
     ) 
@@ -124,7 +124,7 @@ async def process_endpoint(request : Request ,
        
         project_files = await asset_model.get_all_project_assets(
             asset_project_id=project.id,
-            asset_type=AssetType.TYPE.value
+            asset_type=AssetType.FILE.value
                                             )
         project_file_ids = {
             record.id : record.asset_name
