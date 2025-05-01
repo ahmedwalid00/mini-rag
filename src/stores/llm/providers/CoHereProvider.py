@@ -1,5 +1,6 @@
 from stores.llm.LLMInterface import LLMInterface
 from stores.llm.LLMEnums import CoHereEnums , DocumentTypeEnum
+from typing import List , Optional
 import cohere
 import logging
 
@@ -94,6 +95,48 @@ class CoHereProvider(LLMInterface):
             return None
         
         return response.embeddings.float[0]
+    
+
+    def embed_texts(self, texts: List[str], document_type: str = None):
+        """
+        Embeds a list of texts in a single API call.
+
+        Args:
+            texts: A list of strings to embed.
+            document_type: The type of document (e.g., 'search_document', 'search_query').
+
+        Returns:
+            A list of embedding vectors (list of floats), or None if an error occurs.
+        """
+        if not self.client:
+            self.logger.error("CoHere client was not set")
+            return None
+
+        if not self.embedding_model_id:
+            self.logger.error("Embedding model for CoHere was not set")
+            return None
+
+        input_type = CoHereEnums.DOCUMENT.value # Default to DOCUMENT value
+        if document_type == DocumentTypeEnum.QUERY.value:
+            input_type = CoHereEnums.QUERY.value
+
+        try:
+            response = self.client.embed(
+                model=self.embedding_model_id,
+                texts=texts,  # Pass the entire list here
+                input_type=input_type,
+                embedding_types=['float']
+            )
+
+            if not response or not response.embeddings or not response.embeddings.float:
+                self.logger.error("Error or unexpected response structure while embedding batch text with CoHere")
+                return None
+
+            return response.embeddings.float # This is expected to be List[List[float]]
+        
+        except Exception as e:
+            self.logger.error(f"An unexpected error occurred during batch embedding with CoHere: {e}", exc_info=True)
+            return None
 
 
     def construct_prompt(self, prompt: str, role: str):
