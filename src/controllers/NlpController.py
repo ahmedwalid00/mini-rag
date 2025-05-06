@@ -1,5 +1,5 @@
 from .BaseController import BaseController
-from models.db_schemes import Project , DataChunk
+from models.db_schemes import DataChunk , Project
 from stores.llm.LLMEnums import  DocumentTypeEnum
 from stores.llm.LLMEnums import DocumentTypeEnum
 from typing import List
@@ -109,7 +109,7 @@ class NLPController(BaseController):
         document_prompts ="\n".join([
             self.template_parser.get(group = "rag" ,key="document_prompt" ,vars = {
                 "doc_num" : idx + 1 ,
-                "chunk_text" : doc.text
+                "chunk_text" : self.embedding_client.process_text(doc.text)
             })
             for idx , doc in enumerate(retrieved_documents)
         ])
