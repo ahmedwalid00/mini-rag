@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from helpers.config import Settings , get_settings
 from controllers import DataController , ProcessController
 from controllers.ProjectController import ProjectController
+from controllers.NlpController import NLPController
 from routes.schemes.data_schemes import ProcessRequest
 from models.enums.AssetTypeEnums import AssetType
 from models.ChunkModel import ChunkModel 
@@ -81,7 +82,7 @@ async def upload_data(
         status_code=status.HTTP_200_OK , 
         content={
             "signal" : ResponseSignal.FILE_UPLOAD_SUCCESS.value , 
-            "file id" : str(asset_recored.asset_id)
+            "file id" : str(asset_recored.asset_name)
         }
     )
 
@@ -141,8 +142,18 @@ async def process_endpoint(request : Request ,
     chunk_model = await ChunkModel.create_instance(db_client=request.app.db_client)
     process_controller = ProcessController(project_id=project_id)
 
+    nlp_controller = NLPController(
+               vectordb_client=request.app.vectordb_client,
+                generation_client=request.app.generation_client,
+                embedding_client=request.app.embedding_client,
+                template_parser=request.app.template_parser
+            )
+
     if do_reset == 1 :
-        _ = await chunk_model.delete_chunk_by_project_id(
+        collection_name = nlp_controller.create_collection_name(project_id=project.project_id)
+        _ = await request.app.vectordb_client.delete_collection(collection_name=collection_name)
+        
+        _ = await chunk_model.delete_chunks_by_project_id(
                 project_id=project.project_id
                 )
         

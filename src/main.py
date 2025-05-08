@@ -32,10 +32,10 @@ async def startup_span():
                                              embedding_size=settings.EMBEDDING_MODEL_SIZE)
     
     #VectorDB client
-    vectordb_provider_factory = VectorDBProviderFactory(config=settings)
+    vectordb_provider_factory = VectorDBProviderFactory(config=settings , db_client=app.db_client)
     app.vectordb_client = vectordb_provider_factory.create(
         provider=settings.VECTOR_DB_BACKEND)
-    app.vectordb_client.connect()
+    await app.vectordb_client.connect()
 
     #Template Parser
     app.template_parser = TemplateParser(
@@ -46,7 +46,7 @@ async def startup_span():
 
 async def shutdown_span():
     app.mongo_conn.close()
-    app.vectordb_client.disconnect()
+    await app.vectordb_client.disconnect()
 
 
 # app.router.lifespan.on_startup.append(startup_span)
